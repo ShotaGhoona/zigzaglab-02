@@ -245,7 +245,7 @@ jobs:
                 const { rows, endIndex } = parseTableRows(lines, i);
                 
                 if (rows.length > 0) {
-                  // Create table block
+                  // Create table block with first row as children
                   const tableWidth = rows[0].table_row.cells.length;
                   blocks.push({
                     object: 'block',
@@ -254,11 +254,9 @@ jobs:
                       table_width: tableWidth,
                       has_column_header: true,
                       has_row_header: false
-                    }
+                    },
+                    children: rows
                   });
-                  
-                  // Add table rows
-                  blocks.push(...rows);
                 }
                 
                 i = endIndex;
