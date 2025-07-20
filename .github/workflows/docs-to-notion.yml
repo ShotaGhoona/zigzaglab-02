@@ -231,7 +231,7 @@ jobs:
                   [headingType]: { rich_text: parseRichText(text) }
                 });
               }
-              // Table start
+              // Table handling - convert to paragraph for now
               else if (line.includes('|') && line.trim().startsWith('|')) {
                 if (currentParagraph.trim()) {
                   blocks.push({
@@ -242,24 +242,14 @@ jobs:
                   currentParagraph = '';
                 }
 
-                const { rows, endIndex } = parseTableRows(lines, i);
-                
-                if (rows.length > 0) {
-                  // Create table block with first row as children
-                  const tableWidth = rows[0].table_row.cells.length;
+                // Skip separator rows
+                if (!line.match(/^\|[-\s|]*\|$/)) {
                   blocks.push({
                     object: 'block',
-                    type: 'table',
-                    table: {
-                      table_width: tableWidth,
-                      has_column_header: true,
-                      has_row_header: false
-                    },
-                    children: rows
+                    type: 'paragraph',
+                    paragraph: { rich_text: parseRichText(line) }
                   });
                 }
-                
-                i = endIndex;
               }
               // Empty line
               else if (line.trim() === '') {
