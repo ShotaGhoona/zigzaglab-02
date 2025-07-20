@@ -136,30 +136,58 @@ jobs:
             return richText.length > 0 ? richText : [{ type: 'text', text: { content: text }, annotations: { bold: false, italic: false, strikethrough: false, underline: false, code: false, color: 'default' } }];
           }
 
-          function parseTableRows(lines, startIndex) {
-            const tableRows = [];
+          function parseMarkdownTable(lines, startIndex) {
+            const tableData = [];
             let i = startIndex;
             
             while (i < lines.length && lines[i].includes('|')) {
               const line = lines[i].trim();
+              
+              // Skip separator rows (contains only dashes and pipes)
+              if (line.match(/^\|[-\s|]+\|$/)) {
+                i++;
+                continue;
+              }
+              
               if (line.startsWith('|') && line.endsWith('|')) {
                 const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
-                
-                // Skip separator rows (contains only dashes and pipes)
-                if (!cells.every(cell => /^[-\s]*$/.test(cell))) {
-                  tableRows.push({
-                    object: 'block',
-                    type: 'table_row',
-                    table_row: {
-                      cells: cells.map(cell => parseRichText(cell))
-                    }
-                  });
-                }
+                tableData.push(cells);
               }
               i++;
             }
             
-            return { rows: tableRows, endIndex: i - 1 };
+            return { tableData, endIndex: i - 1 };
+          }
+
+          function createNotionTable(tableData) {
+            if (tableData.length === 0) return [];
+            
+            const tableWidth = tableData[0].length;
+            const blocks = [];
+            
+            // Create table block
+            blocks.push({
+              object: 'block',
+              type: 'table',
+              table: {
+                table_width: tableWidth,
+                has_column_header: true,
+                has_row_header: false
+              }
+            });
+            
+            // Create table rows
+            tableData.forEach(row => {
+              blocks.push({
+                object: 'block',
+                type: 'table_row',
+                table_row: {
+                  cells: row.map(cell => parseRichText(cell))
+                }
+              });
+            });
+            
+            return blocks;
           }
 
           function parseMarkdownToBlocks(content) {
@@ -231,7 +259,7 @@ jobs:
                   [headingType]: { rich_text: parseRichText(text) }
                 });
               }
-              // Table handling - convert to paragraph for now
+              // Table handling
               else if (line.includes('|') && line.trim().startsWith('|')) {
                 if (currentParagraph.trim()) {
                   blocks.push({
@@ -242,14 +270,14 @@ jobs:
                   currentParagraph = '';
                 }
 
-                // Skip separator rows
-                if (!line.match(/^\|[-\s|]*\|$/)) {
-                  blocks.push({
-                    object: 'block',
-                    type: 'paragraph',
-                    paragraph: { rich_text: parseRichText(line) }
-                  });
+                const { tableData, endIndex } = parseMarkdownTable(lines, i);
+                
+                if (tableData.length > 0) {
+                  const tableBlocks = createNotionTable(tableData);
+                  blocks.push(...tableBlocks);
                 }
+                
+                i = endIndex;
               }
               // Empty line
               else if (line.trim() === '') {
