@@ -204,15 +204,53 @@ jobs:
               // Code block start/end
               if (line.startsWith('```')) {
                 if (inCodeBlock) {
-                  // End code block
-                  blocks.push({
-                    object: 'block',
-                    type: 'code',
-                    code: {
-                      rich_text: [{ type: 'text', text: { content: codeBlockContent } }],
-                      language: codeLanguage || 'plain text'
+                  // End code block - split if content is too long
+                  const maxLength = 1900; // Leave buffer under 2000 limit
+                  
+                  if (codeBlockContent.length <= maxLength) {
+                    blocks.push({
+                      object: 'block',
+                      type: 'code',
+                      code: {
+                        rich_text: [{ type: 'text', text: { content: codeBlockContent } }],
+                        language: codeLanguage || 'plain text'
+                      }
+                    });
+                  } else {
+                    // Split long code blocks into chunks
+                    let remainingContent = codeBlockContent;
+                    let chunkNumber = 1;
+                    
+                    while (remainingContent.length > 0) {
+                      const chunk = remainingContent.substring(0, maxLength);
+                      remainingContent = remainingContent.substring(maxLength);
+                      
+                      blocks.push({
+                        object: 'block',
+                        type: 'code',
+                        code: {
+                          rich_text: [{ type: 'text', text: { content: chunk } }],
+                          language: codeLanguage || 'plain text'
+                        }
+                      });
+                      
+                      // Add continuation indicator if there's more content
+                      if (remainingContent.length > 0) {
+                        blocks.push({
+                          object: 'block',
+                          type: 'paragraph',
+                          paragraph: {
+                            rich_text: [{ 
+                              type: 'text', 
+                              text: { content: `... (続き ${++chunkNumber})` },
+                              annotations: { italic: true, color: 'gray' }
+                            }]
+                          }
+                        });
+                      }
                     }
-                  });
+                  }
+                  
                   inCodeBlock = false;
                   codeBlockContent = '';
                   codeLanguage = '';
