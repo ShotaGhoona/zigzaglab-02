@@ -51,24 +51,172 @@ jobs:
 
           const databaseId = process.env.NOTION_DATABASE_ID;
 
+          function parseRichText(text) {
+            const richText = [];
+            let currentPos = 0;
+
+            // Pattern to match markdown formatting
+            const patterns = [
+              { regex: /\*\*(.*?)\*\*/g, annotation: { bold: true } },
+              { regex: /\*(.*?)\*/g, annotation: { italic: true } },
+              { regex: /`(.*?)`/g, annotation: { code: true } }
+            ];
+
+            function addTextSegment(content, annotations = {}) {
+              if (content) {
+                richText.push({
+                  type: 'text',
+                  text: { content },
+                  annotations: {
+                    bold: false,
+                    italic: false,
+                    strikethrough: false,
+                    underline: false,
+                    code: false,
+                    color: 'default',
+                    ...annotations
+                  }
+                });
+              }
+            }
+
+            let processedText = text;
+            let segments = [{ text: processedText, annotations: {} }];
+
+            for (const pattern of patterns) {
+              const newSegments = [];
+              
+              for (const segment of segments) {
+                if (segment.annotations[Object.keys(pattern.annotation)[0]]) {
+                  newSegments.push(segment);
+                  continue;
+                }
+
+                let lastIndex = 0;
+                let match;
+                pattern.regex.lastIndex = 0; // Reset regex
+
+                while ((match = pattern.regex.exec(segment.text)) !== null) {
+                  // Add text before match
+                  if (match.index > lastIndex) {
+                    newSegments.push({
+                      text: segment.text.slice(lastIndex, match.index),
+                      annotations: segment.annotations
+                    });
+                  }
+
+                  // Add formatted text
+                  newSegments.push({
+                    text: match[1],
+                    annotations: { ...segment.annotations, ...pattern.annotation }
+                  });
+
+                  lastIndex = pattern.regex.lastIndex;
+                }
+
+                // Add remaining text
+                if (lastIndex < segment.text.length) {
+                  newSegments.push({
+                    text: segment.text.slice(lastIndex),
+                    annotations: segment.annotations
+                  });
+                }
+              }
+              
+              segments = newSegments;
+            }
+
+            // Convert segments to rich text
+            segments.forEach(segment => {
+              if (segment.text) {
+                addTextSegment(segment.text, segment.annotations);
+              }
+            });
+
+            return richText.length > 0 ? richText : [{ type: 'text', text: { content: text }, annotations: { bold: false, italic: false, strikethrough: false, underline: false, code: false, color: 'default' } }];
+          }
+
+          function parseTableRows(lines, startIndex) {
+            const tableRows = [];
+            let i = startIndex;
+            
+            while (i < lines.length && lines[i].includes('|')) {
+              const line = lines[i].trim();
+              if (line.startsWith('|') && line.endsWith('|')) {
+                const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+                
+                // Skip separator rows (contains only dashes and pipes)
+                if (!cells.every(cell => /^[-\s]*$/.test(cell))) {
+                  tableRows.push({
+                    object: 'block',
+                    type: 'table_row',
+                    table_row: {
+                      cells: cells.map(cell => parseRichText(cell))
+                    }
+                  });
+                }
+              }
+              i++;
+            }
+            
+            return { rows: tableRows, endIndex: i - 1 };
+          }
+
           function parseMarkdownToBlocks(content) {
             const lines = content.split('\n');
             const blocks = [];
             let currentParagraph = '';
+            let inCodeBlock = false;
+            let codeBlockContent = '';
+            let codeLanguage = '';
 
             for (let i = 0; i < lines.length; i++) {
               const line = lines[i];
 
+              // Code block start/end
+              if (line.startsWith('```')) {
+                if (inCodeBlock) {
+                  // End code block
+                  blocks.push({
+                    object: 'block',
+                    type: 'code',
+                    code: {
+                      rich_text: [{ type: 'text', text: { content: codeBlockContent } }],
+                      language: codeLanguage || 'plain text'
+                    }
+                  });
+                  inCodeBlock = false;
+                  codeBlockContent = '';
+                  codeLanguage = '';
+                } else {
+                  // Start code block
+                  if (currentParagraph.trim()) {
+                    blocks.push({
+                      object: 'block',
+                      type: 'paragraph',
+                      paragraph: { rich_text: parseRichText(currentParagraph.trim()) }
+                    });
+                    currentParagraph = '';
+                  }
+                  
+                  codeLanguage = line.replace('```', '').trim();
+                  inCodeBlock = true;
+                }
+                continue;
+              }
+
+              if (inCodeBlock) {
+                codeBlockContent += (codeBlockContent ? '\n' : '') + line;
+                continue;
+              }
+
               // Heading
               if (line.startsWith('#')) {
-                // Add previous paragraph if exists
                 if (currentParagraph.trim()) {
                   blocks.push({
                     object: 'block',
                     type: 'paragraph',
-                    paragraph: {
-                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
-                    }
+                    paragraph: { rich_text: parseRichText(currentParagraph.trim()) }
                   });
                   currentParagraph = '';
                 }
@@ -76,31 +224,44 @@ jobs:
                 const level = line.match(/^#+/)[0].length;
                 const text = line.replace(/^#+\s*/, '');
                 
-                if (level === 1) {
+                const headingType = level === 1 ? 'heading_1' : level === 2 ? 'heading_2' : 'heading_3';
+                blocks.push({
+                  object: 'block',
+                  type: headingType,
+                  [headingType]: { rich_text: parseRichText(text) }
+                });
+              }
+              // Table start
+              else if (line.includes('|') && line.trim().startsWith('|')) {
+                if (currentParagraph.trim()) {
                   blocks.push({
                     object: 'block',
-                    type: 'heading_1',
-                    heading_1: {
-                      rich_text: [{ type: 'text', text: { content: text } }]
-                    }
+                    type: 'paragraph',
+                    paragraph: { rich_text: parseRichText(currentParagraph.trim()) }
                   });
-                } else if (level === 2) {
-                  blocks.push({
-                    object: 'block',
-                    type: 'heading_2',
-                    heading_2: {
-                      rich_text: [{ type: 'text', text: { content: text } }]
-                    }
-                  });
-                } else {
-                  blocks.push({
-                    object: 'block',
-                    type: 'heading_3',
-                    heading_3: {
-                      rich_text: [{ type: 'text', text: { content: text } }]
-                    }
-                  });
+                  currentParagraph = '';
                 }
+
+                const { rows, endIndex } = parseTableRows(lines, i);
+                
+                if (rows.length > 0) {
+                  // Create table block
+                  const tableWidth = rows[0].table_row.cells.length;
+                  blocks.push({
+                    object: 'block',
+                    type: 'table',
+                    table: {
+                      table_width: tableWidth,
+                      has_column_header: true,
+                      has_row_header: false
+                    }
+                  });
+                  
+                  // Add table rows
+                  blocks.push(...rows);
+                }
+                
+                i = endIndex;
               }
               // Empty line
               else if (line.trim() === '') {
@@ -108,23 +269,18 @@ jobs:
                   blocks.push({
                     object: 'block',
                     type: 'paragraph',
-                    paragraph: {
-                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
-                    }
+                    paragraph: { rich_text: parseRichText(currentParagraph.trim()) }
                   });
                   currentParagraph = '';
                 }
               }
               // List items
               else if (line.startsWith('- ') || line.match(/^\d+\. /)) {
-                // Add previous paragraph if exists
                 if (currentParagraph.trim()) {
                   blocks.push({
                     object: 'block',
                     type: 'paragraph',
-                    paragraph: {
-                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
-                    }
+                    paragraph: { rich_text: parseRichText(currentParagraph.trim()) }
                   });
                   currentParagraph = '';
                 }
@@ -133,31 +289,7 @@ jobs:
                 blocks.push({
                   object: 'block',
                   type: 'bulleted_list_item',
-                  bulleted_list_item: {
-                    rich_text: [{ type: 'text', text: { content: text } }]
-                  }
-                });
-              }
-              // Table rows
-              else if (line.includes('|')) {
-                // Simple table handling - convert to paragraph for now
-                if (currentParagraph.trim()) {
-                  blocks.push({
-                    object: 'block',
-                    type: 'paragraph',
-                    paragraph: {
-                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
-                    }
-                  });
-                  currentParagraph = '';
-                }
-                
-                blocks.push({
-                  object: 'block',
-                  type: 'paragraph',
-                  paragraph: {
-                    rich_text: [{ type: 'text', text: { content: line } }]
-                  }
+                  bulleted_list_item: { rich_text: parseRichText(text) }
                 });
               }
               // Regular text
@@ -175,9 +307,7 @@ jobs:
               blocks.push({
                 object: 'block',
                 type: 'paragraph',
-                paragraph: {
-                  rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
-                }
+                paragraph: { rich_text: parseRichText(currentParagraph.trim()) }
               });
             }
 
@@ -211,6 +341,11 @@ jobs:
               // Parse markdown to Notion blocks
               const contentBlocks = parseMarkdownToBlocks(content);
 
+              // Create page first with initial chunk
+              const chunkSize = 90; // Leave some buffer under 100 limit
+              const initialChunk = contentBlocks.slice(0, chunkSize);
+              const remainingBlocks = contentBlocks.slice(chunkSize);
+
               const pageData = {
                 parent: { database_id: databaseId },
                 properties: {
@@ -230,7 +365,7 @@ jobs:
                     date: { start: new Date().toISOString() }
                   }
                 },
-                children: contentBlocks
+                children: initialChunk
               };
 
               if (existingPages.results.length > 0) {
@@ -241,7 +376,7 @@ jobs:
                   properties: pageData.properties
                 });
                 
-                // Update page content
+                // Clear existing content
                 const blocks = await notion.blocks.children.list({
                   block_id: pageId
                 });
@@ -255,21 +390,42 @@ jobs:
                   }
                 }
                 
-                // Add new content in chunks (Notion API limit)
-                const chunkSize = 100;
+                // Add all content in chunks
                 for (let i = 0; i < contentBlocks.length; i += chunkSize) {
                   const chunk = contentBlocks.slice(i, i + chunkSize);
                   await notion.blocks.children.append({
                     block_id: pageId,
                     children: chunk
                   });
+                  
+                  // Small delay to avoid rate limiting
+                  if (i + chunkSize < contentBlocks.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                  }
                 }
                 
-                console.log(`Updated: ${fileName}`);
+                console.log(`Updated: ${fileName} (${contentBlocks.length} blocks)`);
               } else {
-                // Create new page
-                await notion.pages.create(pageData);
-                console.log(`Created: ${fileName}`);
+                // Create new page with initial chunk
+                const newPage = await notion.pages.create(pageData);
+                
+                // Add remaining chunks if any
+                if (remainingBlocks.length > 0) {
+                  for (let i = 0; i < remainingBlocks.length; i += chunkSize) {
+                    const chunk = remainingBlocks.slice(i, i + chunkSize);
+                    await notion.blocks.children.append({
+                      block_id: newPage.id,
+                      children: chunk
+                    });
+                    
+                    // Small delay to avoid rate limiting
+                    if (i + chunkSize < remainingBlocks.length) {
+                      await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                  }
+                }
+                
+                console.log(`Created: ${fileName} (${contentBlocks.length} blocks)`);
               }
             } catch (error) {
               console.error(`Error syncing ${filePath}:`, error);
