@@ -51,6 +51,139 @@ jobs:
 
           const databaseId = process.env.NOTION_DATABASE_ID;
 
+          function parseMarkdownToBlocks(content) {
+            const lines = content.split('\n');
+            const blocks = [];
+            let currentParagraph = '';
+
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+
+              // Heading
+              if (line.startsWith('#')) {
+                // Add previous paragraph if exists
+                if (currentParagraph.trim()) {
+                  blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
+                    }
+                  });
+                  currentParagraph = '';
+                }
+
+                const level = line.match(/^#+/)[0].length;
+                const text = line.replace(/^#+\s*/, '');
+                
+                if (level === 1) {
+                  blocks.push({
+                    object: 'block',
+                    type: 'heading_1',
+                    heading_1: {
+                      rich_text: [{ type: 'text', text: { content: text } }]
+                    }
+                  });
+                } else if (level === 2) {
+                  blocks.push({
+                    object: 'block',
+                    type: 'heading_2',
+                    heading_2: {
+                      rich_text: [{ type: 'text', text: { content: text } }]
+                    }
+                  });
+                } else {
+                  blocks.push({
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: {
+                      rich_text: [{ type: 'text', text: { content: text } }]
+                    }
+                  });
+                }
+              }
+              // Empty line
+              else if (line.trim() === '') {
+                if (currentParagraph.trim()) {
+                  blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
+                    }
+                  });
+                  currentParagraph = '';
+                }
+              }
+              // List items
+              else if (line.startsWith('- ') || line.match(/^\d+\. /)) {
+                // Add previous paragraph if exists
+                if (currentParagraph.trim()) {
+                  blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
+                    }
+                  });
+                  currentParagraph = '';
+                }
+
+                const text = line.replace(/^[-\d]+\.?\s*/, '');
+                blocks.push({
+                  object: 'block',
+                  type: 'bulleted_list_item',
+                  bulleted_list_item: {
+                    rich_text: [{ type: 'text', text: { content: text } }]
+                  }
+                });
+              }
+              // Table rows
+              else if (line.includes('|')) {
+                // Simple table handling - convert to paragraph for now
+                if (currentParagraph.trim()) {
+                  blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                      rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
+                    }
+                  });
+                  currentParagraph = '';
+                }
+                
+                blocks.push({
+                  object: 'block',
+                  type: 'paragraph',
+                  paragraph: {
+                    rich_text: [{ type: 'text', text: { content: line } }]
+                  }
+                });
+              }
+              // Regular text
+              else {
+                if (currentParagraph) {
+                  currentParagraph += '\n' + line;
+                } else {
+                  currentParagraph = line;
+                }
+              }
+            }
+
+            // Add final paragraph if exists
+            if (currentParagraph.trim()) {
+              blocks.push({
+                object: 'block',
+                type: 'paragraph',
+                paragraph: {
+                  rich_text: [{ type: 'text', text: { content: currentParagraph.trim() } }]
+                }
+              });
+            }
+
+            return blocks;
+          }
+
           async function syncFileToNotion(filePath) {
             try {
               const content = fs.readFileSync(filePath, 'utf8');
@@ -60,6 +193,9 @@ jobs:
               
               // Extract repo name from git config or use default
               const repoName = 'zigzaglab-02';
+              
+              // Split folder path into individual tags
+              const folderTags = folderPath.split('/').filter(tag => tag !== '');
               
               // Check if page already exists
               const existingPages = await notion.databases.query({
@@ -72,6 +208,9 @@ jobs:
                 }
               });
 
+              // Parse markdown to Notion blocks
+              const contentBlocks = parseMarkdownToBlocks(content);
+
               const pageData = {
                 parent: { database_id: databaseId },
                 properties: {
@@ -82,7 +221,7 @@ jobs:
                     select: { name: repoName }
                   },
                   'Folder': {
-                    multi_select: [{ name: folderPath }]
+                    multi_select: folderTags.map(tag => ({ name: tag }))
                   },
                   'Path': {
                     rich_text: [{ text: { content: relativePath } }]
@@ -91,17 +230,7 @@ jobs:
                     date: { start: new Date().toISOString() }
                   }
                 },
-                children: [
-                  {
-                    object: 'block',
-                    type: 'code',
-                    code: {
-                      caption: [],
-                      rich_text: [{ type: 'text', text: { content: content } }],
-                      language: 'markdown'
-                    }
-                  }
-                ]
+                children: contentBlocks
               };
 
               if (existingPages.results.length > 0) {
@@ -119,14 +248,22 @@ jobs:
                 
                 // Delete existing blocks
                 for (const block of blocks.results) {
-                  await notion.blocks.delete({ block_id: block.id });
+                  try {
+                    await notion.blocks.delete({ block_id: block.id });
+                  } catch (e) {
+                    // Skip if block can't be deleted
+                  }
                 }
                 
-                // Add new content
-                await notion.blocks.children.append({
-                  block_id: pageId,
-                  children: pageData.children
-                });
+                // Add new content in chunks (Notion API limit)
+                const chunkSize = 100;
+                for (let i = 0; i < contentBlocks.length; i += chunkSize) {
+                  const chunk = contentBlocks.slice(i, i + chunkSize);
+                  await notion.blocks.children.append({
+                    block_id: pageId,
+                    children: chunk
+                  });
+                }
                 
                 console.log(`Updated: ${fileName}`);
               } else {
