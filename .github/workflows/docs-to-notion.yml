@@ -1,0 +1,165 @@
+name: Docs → Notion Sync
+
+on:
+  push:
+    branches: [docs, main]
+    paths:
+      - 'docs/requirement-definition/**/*.md'
+      - 'requirement-definition/**/*.md'
+
+jobs:
+  sync-to-notion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v40
+        with:
+          files: |
+            docs/requirement-definition/**/*.md
+            requirement-definition/**/*.md
+
+      - name: Debug - Show changed files
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          echo "Changed files:"
+          echo "${{ steps.changed-files.outputs.all_changed_files }}"
+
+      - name: Sync to Notion
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: |
+          # Install dependencies
+          npm install -g @actions/core
+          
+          # Create sync script
+          cat > sync-to-notion.js << 'EOF'
+          const { Client } = require('@notionhq/client');
+          const fs = require('fs');
+          const path = require('path');
+
+          const notion = new Client({
+            auth: process.env.NOTION_TOKEN,
+          });
+
+          const databaseId = process.env.NOTION_DATABASE_ID;
+
+          async function syncFileToNotion(filePath) {
+            try {
+              const content = fs.readFileSync(filePath, 'utf8');
+              const fileName = path.basename(filePath, '.md');
+              const relativePath = filePath;
+              const folderPath = path.dirname(filePath);
+              
+              // Extract repo name from git config or use default
+              const repoName = 'zigzaglab-02';
+              
+              // Check if page already exists
+              const existingPages = await notion.databases.query({
+                database_id: databaseId,
+                filter: {
+                  property: 'Path',
+                  rich_text: {
+                    equals: relativePath
+                  }
+                }
+              });
+
+              const pageData = {
+                parent: { database_id: databaseId },
+                properties: {
+                  'Title': {
+                    title: [{ text: { content: fileName } }]
+                  },
+                  'Repo': {
+                    select: { name: repoName }
+                  },
+                  'Folder': {
+                    multi_select: [{ name: folderPath }]
+                  },
+                  'Path': {
+                    rich_text: [{ text: { content: relativePath } }]
+                  },
+                  'Last Synced': {
+                    date: { start: new Date().toISOString() }
+                  }
+                },
+                children: [
+                  {
+                    object: 'block',
+                    type: 'code',
+                    code: {
+                      caption: [],
+                      rich_text: [{ type: 'text', text: { content: content } }],
+                      language: 'markdown'
+                    }
+                  }
+                ]
+              };
+
+              if (existingPages.results.length > 0) {
+                // Update existing page
+                const pageId = existingPages.results[0].id;
+                await notion.pages.update({
+                  page_id: pageId,
+                  properties: pageData.properties
+                });
+                
+                // Update page content
+                const blocks = await notion.blocks.children.list({
+                  block_id: pageId
+                });
+                
+                // Delete existing blocks
+                for (const block of blocks.results) {
+                  await notion.blocks.delete({ block_id: block.id });
+                }
+                
+                // Add new content
+                await notion.blocks.children.append({
+                  block_id: pageId,
+                  children: pageData.children
+                });
+                
+                console.log(`Updated: ${fileName}`);
+              } else {
+                // Create new page
+                await notion.pages.create(pageData);
+                console.log(`Created: ${fileName}`);
+              }
+            } catch (error) {
+              console.error(`Error syncing ${filePath}:`, error);
+            }
+          }
+
+          async function main() {
+            const changedFiles = process.env.CHANGED_FILES.split(' ');
+            
+            for (const file of changedFiles) {
+              if (file.endsWith('.md')) {
+                await syncFileToNotion(file);
+              }
+            }
+          }
+
+          main().catch(console.error);
+          EOF
+
+          # Install Notion SDK
+          npm install @notionhq/client
+
+          # Run sync script
+          CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}" node sync-to-notion.js
+
+      - name: Report sync results
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          echo "✅ Sync completed for the following files:"
+          echo "${{ steps.changed-files.outputs.all_changed_files }}"
