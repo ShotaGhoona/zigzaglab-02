@@ -297,7 +297,7 @@ jobs:
                   [headingType]: { rich_text: parseRichText(text) }
                 });
               }
-              // Table handling
+              // Table handling - store table data for later processing
               else if (line.includes('|') && line.trim().startsWith('|')) {
                 if (currentParagraph.trim()) {
                   blocks.push({
@@ -311,8 +311,12 @@ jobs:
                 const { tableData, endIndex } = parseMarkdownTable(lines, i);
                 
                 if (tableData.length > 0) {
-                  const tableBlocks = createNotionTable(tableData);
-                  blocks.push(...tableBlocks);
+                  // Mark as table placeholder - will be processed separately
+                  blocks.push({
+                    object: 'block',
+                    type: 'table_placeholder',
+                    table_data: tableData
+                  });
                 }
                 
                 i = endIndex;
@@ -395,31 +399,21 @@ jobs:
               // Parse markdown to Notion blocks
               const contentBlocks = parseMarkdownToBlocks(content);
 
-              // Filter out table blocks and handle them separately
-              const nonTableBlocks = [];
-              const tableBlocks = [];
+              // Separate table placeholders from regular blocks
+              const regularBlocks = [];
+              const tablePlaceholders = [];
               
-              for (let i = 0; i < contentBlocks.length; i++) {
-                const block = contentBlocks[i];
-                if (block.type === 'table') {
-                  // Collect table and its rows
-                  const tableGroup = [block];
-                  i++; // Move to next block
-                  while (i < contentBlocks.length && contentBlocks[i].type === 'table_row') {
-                    tableGroup.push(contentBlocks[i]);
-                    i++;
-                  }
-                  i--; // Adjust for the outer loop increment
-                  tableBlocks.push(tableGroup);
+              contentBlocks.forEach(block => {
+                if (block.type === 'table_placeholder') {
+                  tablePlaceholders.push(block);
                 } else {
-                  nonTableBlocks.push(block);
+                  regularBlocks.push(block);
                 }
-              }
+              });
 
-              // Create page first with non-table blocks
               const chunkSize = 90;
-              const initialChunk = nonTableBlocks.slice(0, chunkSize);
-              const remainingBlocks = nonTableBlocks.slice(chunkSize);
+              const initialChunk = regularBlocks.slice(0, chunkSize);
+              const remainingBlocks = regularBlocks.slice(chunkSize);
 
               const pageData = {
                 parent: { database_id: databaseId },
@@ -465,54 +459,32 @@ jobs:
                   }
                 }
                 
-                // Add non-table content in chunks
-                for (let i = 0; i < nonTableBlocks.length; i += chunkSize) {
-                  const chunk = nonTableBlocks.slice(i, i + chunkSize);
+                // Add regular content in chunks
+                for (let i = 0; i < regularBlocks.length; i += chunkSize) {
+                  const chunk = regularBlocks.slice(i, i + chunkSize);
                   await notion.blocks.children.append({
                     block_id: pageId,
                     children: chunk
                   });
                   
                   // Small delay to avoid rate limiting
-                  if (i + chunkSize < nonTableBlocks.length) {
+                  if (i + chunkSize < regularBlocks.length) {
                     await new Promise(resolve => setTimeout(resolve, 200));
                   }
                 }
                 
-                // Add tables separately using 2-step approach
-                for (const tableGroup of tableBlocks) {
+                // Add tables using 2-step approach
+                for (const tablePlaceholder of tablePlaceholders) {
                   try {
-                    // Step 1: Create table block only
-                    const tableBlock = await notion.blocks.children.append({
-                      block_id: pageId,
-                      children: [tableGroup[0]] // Just the table block
-                    });
-                    
-                    // Step 2: Add table rows to the table
-                    if (tableGroup.length > 1) {
-                      const tableId = tableBlock.results[0].id;
-                      const tableRows = tableGroup.slice(1); // All table_row blocks
-                      
-                      for (let i = 0; i < tableRows.length; i += chunkSize) {
-                        const rowChunk = tableRows.slice(i, i + chunkSize);
-                        await notion.blocks.children.append({
-                          block_id: tableId,
-                          children: rowChunk
-                        });
-                        
-                        if (i + chunkSize < tableRows.length) {
-                          await new Promise(resolve => setTimeout(resolve, 200));
-                        }
-                      }
-                    }
+                    await createNotionTable(notion, pageId, tablePlaceholder.table_data);
                   } catch (error) {
                     console.error('Error creating table:', error);
                     // Fallback: Convert table to paragraphs
-                    const fallbackBlocks = tableGroup.map(block => ({
+                    const fallbackBlocks = tablePlaceholder.table_data.map(row => ({
                       object: 'block',
                       type: 'paragraph',
                       paragraph: {
-                        rich_text: [{ type: 'text', text: { content: block.type === 'table' ? '[TABLE]' : block.table_row.cells.map(cell => cell.map(c => c.text?.content || '').join('')).join(' | ') } }]
+                        rich_text: [{ type: 'text', text: { content: row.join(' | ') } }]
                       }
                     }));
                     
@@ -523,12 +495,12 @@ jobs:
                   }
                 }
                 
-                console.log(`Updated: ${fileName} (${nonTableBlocks.length} blocks, ${tableBlocks.length} tables)`);
+                console.log(`Updated: ${fileName} (${regularBlocks.length} blocks, ${tablePlaceholders.length} tables)`);
               } else {
                 // Create new page with initial chunk
                 const newPage = await notion.pages.create(pageData);
                 
-                // Add remaining non-table chunks if any
+                // Add remaining regular blocks if any
                 if (remainingBlocks.length > 0) {
                   for (let i = 0; i < remainingBlocks.length; i += chunkSize) {
                     const chunk = remainingBlocks.slice(i, i + chunkSize);
@@ -544,40 +516,18 @@ jobs:
                   }
                 }
                 
-                // Add tables separately using 2-step approach
-                for (const tableGroup of tableBlocks) {
+                // Add tables using 2-step approach
+                for (const tablePlaceholder of tablePlaceholders) {
                   try {
-                    // Step 1: Create table block only
-                    const tableBlock = await notion.blocks.children.append({
-                      block_id: newPage.id,
-                      children: [tableGroup[0]] // Just the table block
-                    });
-                    
-                    // Step 2: Add table rows to the table
-                    if (tableGroup.length > 1) {
-                      const tableId = tableBlock.results[0].id;
-                      const tableRows = tableGroup.slice(1); // All table_row blocks
-                      
-                      for (let i = 0; i < tableRows.length; i += chunkSize) {
-                        const rowChunk = tableRows.slice(i, i + chunkSize);
-                        await notion.blocks.children.append({
-                          block_id: tableId,
-                          children: rowChunk
-                        });
-                        
-                        if (i + chunkSize < tableRows.length) {
-                          await new Promise(resolve => setTimeout(resolve, 200));
-                        }
-                      }
-                    }
+                    await createNotionTable(notion, newPage.id, tablePlaceholder.table_data);
                   } catch (error) {
                     console.error('Error creating table:', error);
                     // Fallback: Convert table to paragraphs
-                    const fallbackBlocks = tableGroup.map(block => ({
+                    const fallbackBlocks = tablePlaceholder.table_data.map(row => ({
                       object: 'block',
                       type: 'paragraph',
                       paragraph: {
-                        rich_text: [{ type: 'text', text: { content: block.type === 'table' ? '[TABLE]' : block.table_row.cells.map(cell => cell.map(c => c.text?.content || '').join('')).join(' | ') } }]
+                        rich_text: [{ type: 'text', text: { content: row.join(' | ') } }]
                       }
                     }));
                     
@@ -588,7 +538,7 @@ jobs:
                   }
                 }
                 
-                console.log(`Created: ${fileName} (${nonTableBlocks.length} blocks, ${tableBlocks.length} tables)`);
+                console.log(`Created: ${fileName} (${regularBlocks.length} blocks, ${tablePlaceholders.length} tables)`);
               }
             } catch (error) {
               console.error(`Error syncing ${filePath}:`, error);
@@ -603,6 +553,62 @@ jobs:
                 await syncFileToNotion(file);
               }
             }
+          }
+
+          // Table creation function using 2-step approach
+          async function createNotionTable(notion, pageId, tableData) {
+            if (tableData.length === 0) return;
+            
+            const tableWidth = tableData[0].length;
+            
+            // Step 1: Create table block
+            const tableBlock = await notion.blocks.children.append({
+              block_id: pageId,
+              children: [{
+                type: 'table',
+                table: {
+                  table_width: tableWidth,
+                  has_column_header: true,
+                  has_row_header: false
+                }
+              }]
+            });
+            
+            const tableId = tableBlock.results[0].id;
+            
+            // Step 2: Add table rows in batches
+            const batchSize = 80; // Safe margin
+            for (let i = 0; i < tableData.length; i += batchSize) {
+              const batch = tableData.slice(i, i + batchSize);
+              
+              const rows = batch.map(row => ({
+                type: 'table_row',
+                table_row: {
+                  cells: row.map(cellContent => [{
+                    type: 'text',
+                    text: { content: cellContent },
+                    annotations: {
+                      bold: false,
+                      italic: false,
+                      code: false,
+                      color: 'default'
+                    }
+                  }])
+                }
+              }));
+              
+              await notion.blocks.children.append({
+                block_id: tableId, // Add to table, not page
+                children: rows
+              });
+              
+              // Rate limiting delay
+              if (i + batchSize < tableData.length) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+            }
+            
+            console.log(`Created table with ${tableData.length} rows`);
           }
 
           main().catch(console.error);
