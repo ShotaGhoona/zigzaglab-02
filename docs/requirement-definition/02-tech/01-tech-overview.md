@@ -5,15 +5,20 @@
 | バージョン | 日付 | 変更者 | 変更内容 | 承認状況 | 承認者 | 次回レビュー予定 |
 |------------|------|--------|----------|----------|--------|------------------|
 | v1.0 | 2025-07-20 | techPM | 初版作成 | 🔄 レビュー中 | 橋本さん（クライアント代表者） | 次回ミーティング時 |
+| v1.1 | 2025-07-22 | techPM | Clerk統一認証への変更 | 🔄 レビュー中 | 橋本さん（クライアント代表者） | 次回ミーティング時 |
 
 ## 1. システム構成
 
 ```
 Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabase)
     Vercel                   Railway                PostgreSQL
+                                |
+                                ▼
+                           Authentication
+                             (Clerk)
 ```
 
-**技術選定方針**: 一人開発対応・コスト効率・TypeScript型安全性・デプロイ容易性
+**技術選定方針**: 自作システム構築・勉強目的・TypeScript型安全性・認証サービス活用
 
 ## 2. フロントエンド
 
@@ -23,11 +28,12 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 | **TypeScript** | 型システム | 型安全性、開発効率 |
 | **Tailwind CSS** | CSSフレームワーク | 高速開発、レスポンシブ |
 | **shadcn/ui** | UIコンポーネント | 高品質、カスタマイズ性 |
+| **Clerk** | 認証SDK | Next.js統合、管理画面 |
 
 **フェーズ別構成**:
 - 第1フェーズ: 静的エクスポート
-- 第2フェーズ: SSG/ISR
-- 第3・4フェーズ: フルスタック
+- 第2フェーズ: SSG/ISR + 自作管理画面
+- 第3・4フェーズ: フルスタック + 会員システム
 
 ## 3. バックエンド
 
@@ -42,9 +48,13 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 
 **Supabase**:
 - PostgreSQL (メインDB)
-- Auth (JWT認証)
 - Storage (画像保存)
 - Realtime (通知)
+
+**Clerk**:
+- ユーザー認証・管理
+- JWT発行・検証
+- 招待制ユーザー管理（管理者3名）
 
 ## 5. インフラ・デプロイ
 
@@ -57,7 +67,8 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 
 ## 6. セキュリティ
 
-- **認証**: Supabase Auth (JWT)
+- **認証**: Clerk (JWT + 招待制)
+- **認可**: FastAPI + Clerk JWT検証
 - **HTTPS**: 自動SSL証明書
 - **入力検証**: Zod + Pydantic
 - **DB**: Row Level Security (RLS)
@@ -67,5 +78,6 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 - **IDE**: VS Code
 - **API テスト**: Thunder Client
 - **DB管理**: Supabase CLI
+- **認証管理**: Clerk Dashboard
 - **コンテナ**: Docker Desktop
 - **品質管理**: ESLint, Prettier, Jest, pytest
