@@ -7,7 +7,7 @@
 | v1.0 | 2025-07-20 | techPM | 初版作成 | 🔄 レビュー中 | 橋本さん |
 | v1.1 | 2025-07-22 | techPM | Clerk統一認証への変更 | 🔄 レビュー中 | 橋本さん |
 | v1.2 | 2025-07-22 | techPM | Supabase SDK + 直接API呼び出し対応 | 🔄 レビュー中 | 橋本さん |
-| v1.3 | 2025-07-22 | techPM | JWT検証 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本さん |
+| v1.3 | 2025-07-22 | techPM | Clerk認証簡素化 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本さん |
 | v1.4 | 2025-07-22 | techPM | 認証をClerk管理画面のみに簡素化 | 🔄 レビュー中 | 橋本さん |
 | v1.5 | 2025-07-22 | techPM | データアクセスをSupabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本さん |
 
@@ -18,7 +18,7 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
     Vercel                   Railway                PostgreSQL + RLS
         |                       |                      |
         ▼                       ▼                      ▼
-   直接API呼び出し         Supabase Python SDK    認証：Clerk管理画面
+   直接API呼び出し         Supabase SDK    認証：Clerk管理画面
                           + RLS自動適用           (管理者3名のみ)
         |                       |
         ▼                       ▼
@@ -50,7 +50,7 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 | **FastAPI** | APIフレームワーク | 高速、自動ドキュメント生成 |
 | **Python 3.11** | プログラミング言語 | FastAPI対応 |
 | **Pydantic** | データバリデーション | 型安全性 |
-| **Supabase Python SDK** | データアクセス | RLS自動適用、リアルタイム機能、型生成 |
+| **Supabase SDK** | データアクセス | RLS自動適用、リアルタイム機能、型生成 |
 
 ## 4. データベース・認証
 

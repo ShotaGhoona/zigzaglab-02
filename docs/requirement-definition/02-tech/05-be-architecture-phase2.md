@@ -4,7 +4,7 @@
 
 | Version | Date | Author | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
-| v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
+| v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本さん |
 
 ---
 
@@ -12,16 +12,16 @@
 
 ### 1.1 技術スタック
 - **FastAPI** (Python 3.11) + Pydantic
-- **Supabase Python SDK** (SQLAlchemy不使用)
+- **Supabase SDK** (SQLAlchemy不使用)
 - **Clerk JWT認証** (最小限の検証のみ)
 - **Railway** (デプロイ)
 
 ### 1.2 重要な設計決定
-- **データアクセス**: Supabase Python SDK + RLS自動適用
-- **認証**: Clerk JWT検証（管理者3名のみ）
+- **データアクセス**: Supabase SDK + RLS自動適用
+- **認証**: Clerk管理画面制御（管理者3名のみ）
 - **アーキテクチャ**: Router → Service → Repository
 - **API**: フロントエンド直接呼び出し対応（CORS設定）
-- **セキュリティ**: RLS + JWT検証で二重保護
+- **セキュリティ**: RLS + Clerk認証で簡単保護
 
 ---
 
@@ -34,7 +34,7 @@ backend/src/
 ├── config/
 │   ├── database.py             # Supabase接続設定
 │   ├── settings.py             # 環境変数管理
-│   └── auth.py                 # Clerk JWT検証設定
+│   └── auth.py                 # Clerk設定（簡素化）
 ├── routers/                    # APIエンドポイント（各機能別）
 │   ├── news.py                 # GET /news, POST /admin/news
 │   ├── products.py             # GET /products, POST /admin/products
@@ -101,19 +101,18 @@ backend/src/
 
 ## 5. 認証設計
 
-### 5.1 認証フロー
+### 5.1 認証フロー（簡素化）
 ```
-1. フロントエンド: Clerkから JWT取得
-2. FastAPI: Authorization Bearer {jwt} で受信
-3. middleware/auth.py: JWT検証（Clerk公開鍵）
-4. 管理者チェック: email in ADMIN_EMAILS
-5. RLS: JWTペイロードで自動データ絞り込み
+1. フロントエンド: Clerk管理画面で認証済みかチェック
+2. 認証済み → 管理画面アクセス可能
+3. 未認証 → Clerkログイン画面リダイレクト
+4. API呼び出し: Clerkトークンを自動付与
 ```
 
-### 5.2 管理者限定API
-- `/admin/*` 全エンドポイント
-- `Depends(verify_admin)` で保護
-- 3名のメールアドレス限定
+### 5.2 管理者限定範囲
+- 管理画面 (`/admin/*`) 全体をClerkで保護
+- 招待制: 3名のメールアドレスのみアクセス可能
+- バックエンドAPI: 最小限の認証チェックのみ
 
 ---
 
@@ -158,7 +157,7 @@ files/
 # .env
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJ...        # RLS回避用
-CLERK_JWT_PUBLIC_KEY=-----BEGIN...       # JWT検証用
+CLERK_SECRET_KEY=sk_...                  # Clerk API用（簡素化）
 ADMIN_EMAILS=email1@example.com,email2@example.com,email3@example.com
 ```
 

@@ -4,19 +4,19 @@
 
 | Version | Date | Author | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
-| v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
-| v1.1 | 2025-07-22 | 山下 | Supabase SDK対応に修正 | 🔄 レビュー中 | 橋本 |
-| v1.2 | 2025-07-22 | 山下 | 直接API呼び出し対応に修正 | 🔄 レビュー中 | 橋本 |
-| v1.3 | 2025-07-22 | 山下 | JWT検証 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本 |
-| v1.4 | 2025-07-22 | 山下 | Supabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本 |
+| v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本さん |
+| v1.1 | 2025-07-22 | 山下 | Supabase SDK対応に修正 | 🔄 レビュー中 | 橋本さん |
+| v1.2 | 2025-07-22 | 山下 | 直接API呼び出し対応に修正 | 🔄 レビュー中 | 橋本さん |
+| v1.3 | 2025-07-22 | 山下 | Clerk認証簡素化 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本さん |
+| v1.4 | 2025-07-22 | 山下 | Supabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本さん |
 
 
 ## 1. API概要
 
 ### 1.1 使用技術
 - **フレームワーク**: FastAPI (Python)
-- **認証**: Clerk JWT認証（FastAPIで検証）
-- **データアクセス**: Supabase Python SDK
+- **認証**: Clerk認証（管理画面で簡単制御）
+- **データアクセス**: Supabase SDK
 - **データベース**: PostgreSQL + Row Level Security (RLS)
 - **追加機能**: Realtime、型生成、Auto API
 - **ファイルストレージ**: Supabase Storage
@@ -25,7 +25,7 @@
 ### 1.2 設計方針
 - RESTful API設計
 - 管理者認証必須（Clerk JWT）
-- Supabase Python SDKによる簡潔なデータアクセス
+- Supabase SDKによる簡潔なデータアクセス
 - RLS（Row Level Security）による自動セキュリティ適用
 - Realtime機能によるリアルタイム更新
 - フロントエンドからの直接API呼び出し対応
@@ -554,7 +554,7 @@ alt_text: string (optional)
 ## 8. セキュリティ
 
 ### 8.1 認証・認可
-- Clerk JWT検証（FastAPI実装）
+- Clerk管理画面での認証制御
 - 管理者権限チェック
 - レート制限実装
 
@@ -570,5 +570,5 @@ alt_text: string (optional)
 
 **更新日**: 2025年7月22日  
 **ステータス**: v1.4・Supabase SDK最大限活用 + 直接API呼び出し + 直接ファイルアクセス対応  
-**データアクセス**: Supabase Python SDK + RLS + Realtime  
-**総エンドポイント数**: 30エンドポイント（パブリック8、管理者22）
+**データアクセス**: Supabase SDK + RLS + Realtime  
+**総エンドポイント数**: 29エンドポイント（パブリック8、管理者21）

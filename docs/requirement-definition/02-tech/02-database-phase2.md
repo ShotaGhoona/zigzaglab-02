@@ -4,9 +4,9 @@
 
 | Version | Date | Author | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
-| v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
-| v1.1 | 2025-07-22 | 山下 | Supabase SDK対応に修正 | 🔄 レビュー中 | 橋本 |
-| v1.2 | 2025-07-22 | 山下 | Supabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本 |
+| v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本さん |
+| v1.1 | 2025-07-22 | 山下 | Supabase SDK対応に修正 | 🔄 レビュー中 | 橋本さん |
+| v1.2 | 2025-07-22 | 山下 | Supabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本さん |
 
 ---
 
@@ -263,7 +263,6 @@ erDiagram
 **インデックス**:
 - `idx_taggables_tag` ON tag_id
 - `idx_taggables_entity` ON (entity_type, entity_id)
-- `idx_taggables_unique` ON (tag_id, entity_type, entity_id) UNIQUE
 
 
 ---
@@ -295,7 +294,7 @@ TO anon
 USING (status = 'published');
 ```
 
-### 4.2 Supabase Python SDK使用例
+### 4.2 Supabase SDK使用例
 ```python
 # supabase_client.py
 from supabase import create_client
@@ -370,5 +369,5 @@ def handle_news_insert(payload):
 
 **更新日**: 2025年7月22日  
 **ステータス**: v1.2・Supabase SDK最大限活用対応  
-**データアクセス**: Supabase Python SDK + RLS + Realtime + 型生成  
+**データアクセス**: Supabase SDK + RLS + Realtime + 型生成  
 **総テーブル数**: 7テーブル（管理系1、コンテンツ系4、業務系1、ファイル系1）
