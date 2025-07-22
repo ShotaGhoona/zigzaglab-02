@@ -6,19 +6,20 @@
 |------------|------|--------|----------|----------|--------|
 | v1.0 | 2025-07-20 | techPM | 初版作成 | 🔄 レビュー中 | 橋本さん |
 | v1.1 | 2025-07-22 | techPM | Clerk統一認証への変更 | 🔄 レビュー中 | 橋本さん |
+| v1.2 | 2025-07-22 | techPM | SQLAlchemy + 直接API呼び出し対応 | 🔄 レビュー中 | 橋本さん |
 
 ## 1. システム構成
 
 ```
 Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabase)
     Vercel                   Railway                PostgreSQL
-                                |
-                                ▼
-                           Authentication
-                             (Clerk)
+        |                       |                      |
+        ▼                       ▼                      ▼
+   直接API呼び出し            SQLAlchemy ORM        Authentication
+                                                      (Clerk)
 ```
 
-**技術選定方針**: 自作システム構築・勉強目的・TypeScript型安全性・認証サービス活用
+**技術選定方針**: 自作システム構築・勉強目的・TypeScript型安全性・直接API呼び出し・SQLAlchemy ORM
 
 ## 2. フロントエンド
 
