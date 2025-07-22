@@ -6,26 +6,27 @@
 |------------|------|--------|----------|----------|--------|
 | v1.0 | 2025-07-20 | techPM | 初版作成 | 🔄 レビュー中 | 橋本さん |
 | v1.1 | 2025-07-22 | techPM | Clerk統一認証への変更 | 🔄 レビュー中 | 橋本さん |
-| v1.2 | 2025-07-22 | techPM | SQLAlchemy + 直接API呼び出し対応 | 🔄 レビュー中 | 橋本さん |
+| v1.2 | 2025-07-22 | techPM | Supabase SDK + 直接API呼び出し対応 | 🔄 レビュー中 | 橋本さん |
 | v1.3 | 2025-07-22 | techPM | JWT検証 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本さん |
 | v1.4 | 2025-07-22 | techPM | 認証をClerk管理画面のみに簡素化 | 🔄 レビュー中 | 橋本さん |
+| v1.5 | 2025-07-22 | techPM | データアクセスをSupabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本さん |
 
 ## 1. システム構成
 
 ```
 Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabase)
-    Vercel                   Railway                PostgreSQL
+    Vercel                   Railway                PostgreSQL + RLS
         |                       |                      |
         ▼                       ▼                      ▼
-   直接API呼び出し         SQLAlchemy ORM        認証：Clerk管理画面
-                                                    (管理者3名のみ)
-        |
-        ▼
-   Supabase Storage
-   (直接アクセス)
+   直接API呼び出し         Supabase Python SDK    認証：Clerk管理画面
+                          + RLS自動適用           (管理者3名のみ)
+        |                       |
+        ▼                       ▼
+   Supabase Storage      Realtime機能・型生成
+   (直接アクセス)         自動API生成
 ```
 
-**技術選定方針**: 自作システム構築・勉強目的・TypeScript型安全性・直接API呼び出し・SQLAlchemy ORM
+**技術選定方針**: 自作システム構築・勉強目的・TypeScript型安全性・直接API呼び出し・Supabase最大限活用
 
 ## 2. フロントエンド
 
@@ -49,14 +50,16 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 | **FastAPI** | APIフレームワーク | 高速、自動ドキュメント生成 |
 | **Python 3.11** | プログラミング言語 | FastAPI対応 |
 | **Pydantic** | データバリデーション | 型安全性 |
-| **SQLAlchemy** | ORM | データアクセス層、型安全性 |
+| **Supabase Python SDK** | データアクセス | RLS自動適用、リアルタイム機能、型生成 |
 
 ## 4. データベース・認証
 
 **Supabase**:
-- PostgreSQL (メインDB)
-- Storage (画像保存)
-- Realtime (通知)
+- PostgreSQL (メインDB) + Row Level Security (RLS)
+- Storage (画像保存) + 直接アクセス
+- Realtime (リアルタイム更新)
+- Auto API (CRUD API自動生成)
+- 型生成 (TypeScript型自動生成)
 
 **Clerk**:
 - ユーザー認証・管理

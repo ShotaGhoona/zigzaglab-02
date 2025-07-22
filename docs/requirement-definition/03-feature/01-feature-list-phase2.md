@@ -32,7 +32,7 @@
 | 機能ID | 機能名 | 優先度 | 状況 | 概要 |
 |--------|--------|--------|------|------|
 | F-0201 | Next.js フロントエンド | 🔴 | ◻️ | SSG/ISR・レスポンシブデザイン・SEO対応 |
-| F-0202 | FastAPI バックエンド | 🔴 | ◻️ | REST API・SQLAlchemy ORM・認証連携 |
+| F-0202 | FastAPI バックエンド | 🔴 | ◻️ | REST API・Supabase SDK・認証連携 |
 | F-0203 | Supabase データベース | 🔴 | ◻️ | PostgreSQL・Storage・Row Level Security |
 | F-0204 | デプロイ環境 | 🔴 | ◻️ | Vercel（フロント）+ Railway（バック）CI/CD |
 

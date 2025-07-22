@@ -5,9 +5,10 @@
 | Version | Date | Author | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
 | v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
-| v1.1 | 2025-07-22 | 山下 | SQLAlchemy ORM対応に修正 | 🔄 レビュー中 | 橋本 |
+| v1.1 | 2025-07-22 | 山下 | Supabase SDK対応に修正 | 🔄 レビュー中 | 橋本 |
 | v1.2 | 2025-07-22 | 山下 | 直接API呼び出し対応に修正 | 🔄 レビュー中 | 橋本 |
 | v1.3 | 2025-07-22 | 山下 | JWT検証 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本 |
+| v1.4 | 2025-07-22 | 山下 | Supabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本 |
 
 
 ## 1. API概要
@@ -15,17 +16,18 @@
 ### 1.1 使用技術
 - **フレームワーク**: FastAPI (Python)
 - **認証**: Clerk JWT認証（FastAPIで検証）
-- **ORM**: SQLAlchemy 2.0（非同期対応）
-- **データベース**: PostgreSQL（Supabase経由）
-- **データアクセス**: SQLAlchemy + asyncpg driver
+- **データアクセス**: Supabase Python SDK
+- **データベース**: PostgreSQL + Row Level Security (RLS)
+- **追加機能**: Realtime、型生成、Auto API
 - **ファイルストレージ**: Supabase Storage
 - **ドキュメント**: OpenAPI 3.0 (自動生成)
 
 ### 1.2 設計方針
 - RESTful API設計
 - 管理者認証必須（Clerk JWT）
-- SQLAlchemy ORMによる型安全なデータアクセス
-- 非同期処理による高パフォーマンス
+- Supabase Python SDKによる簡潔なデータアクセス
+- RLS（Row Level Security）による自動セキュリティ適用
+- Realtime機能によるリアルタイム更新
 - フロントエンドからの直接API呼び出し対応
 - CORS設定によるクロスオリジン対応
 - 適切なHTTPステータスコード使用
@@ -567,5 +569,6 @@ alt_text: string (optional)
 ---
 
 **更新日**: 2025年7月22日  
-**ステータス**: v1.3・SQLAlchemy ORM + 直接API呼び出し + JWT検証 + 直接ファイルアクセス対応  
+**ステータス**: v1.4・Supabase SDK最大限活用 + 直接API呼び出し + 直接ファイルアクセス対応  
+**データアクセス**: Supabase Python SDK + RLS + Realtime  
 **総エンドポイント数**: 30エンドポイント（パブリック8、管理者22）

@@ -70,7 +70,7 @@
 | `/admin` | 管理画面ダッシュボード | 問い合わせ一覧・アクセス統計・更新状況 | 👑 | Clerk統一認証必須 |
 | `/admin/news` | ニュース管理 | ニュース記事の作成・編集・削除・公開設定 | 👑 | 自作エディタ |
 | `/admin/products` | 商品管理 | 商品情報の作成・編集・削除・カテゴリ管理 | 👑 | Supabase Storage連携 |
-| `/admin/inquiries` | 問い合わせ管理 | 問い合わせ・見積依頼の一覧・対応状況管理 | 👑 | FastAPI + SQLAlchemy |
+| `/admin/inquiries` | 問い合わせ管理 | 問い合わせ・見積依頼の一覧・対応状況管理 | 👑 | FastAPI + Supabase SDK |
 | `/admin/analytics` | アクセス解析 | GA4データ表示・SEO状況・コンバージョン分析 | 👑 | データ可視化 |
 | `/admin/settings` | システム設定 | サイト基本設定・SEO設定・メール設定 | 👑 | 管理者権限 |
 

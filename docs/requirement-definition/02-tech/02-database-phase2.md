@@ -5,7 +5,8 @@
 | Version | Date | Author | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
 | v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
-| v1.1 | 2025-07-22 | 山下 | SQLAlchemy ORM対応に修正 | 🔄 レビュー中 | 橋本 |
+| v1.1 | 2025-07-22 | 山下 | Supabase SDK対応に修正 | 🔄 レビュー中 | 橋本 |
+| v1.2 | 2025-07-22 | 山下 | Supabase SDK最大限活用に変更 | 🔄 レビュー中 | 橋本 |
 
 ---
 
@@ -269,6 +270,105 @@ erDiagram
 
 ---
 
+---
+
+## 4. Supabase機能活用
+
+### 4.1 Row Level Security (RLS)
+```sql
+-- 管理者のみアクセス可能（Clerk JWTと連携）
+CREATE POLICY "admin_only_policy" ON news
+FOR ALL
+TO authenticated
+USING (
+  auth.jwt() ->> 'email' IN (
+    'hashimoto@example.com', 
+    'yamashita@example.com', 
+    'ozaki@example.com'
+  )
+);
+
+-- 公開記事のみ一般ユーザーが閲覧可能
+CREATE POLICY "published_news_policy" ON news
+FOR SELECT
+TO anon
+USING (status = 'published');
+```
+
+### 4.2 Supabase Python SDK使用例
+```python
+# supabase_client.py
+from supabase import create_client
+import os
+
+supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_ANON_KEY")
+)
+
+# データ取得（RLS自動適用）
+def get_published_news():
+    response = supabase.table("news")\
+        .select("*")\
+        .eq("status", "published")\
+        .order("created_at", desc=True)\
+        .execute()
+    return response.data
+
+# データ作成（RLS自動適用）
+def create_news(news_data):
+    response = supabase.table("news")\
+        .insert(news_data)\
+        .execute()
+    return response.data[0]
+```
+
+### 4.3 TypeScript型生成
+```bash
+# Supabaseから型を自動生成
+supabase gen types typescript --project-id=your-project > types/database.ts
+```
+
+```typescript
+// types/database.ts (自動生成)
+export interface Database {
+  public: {
+    Tables: {
+      news: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          status: 'draft' | 'published' | 'archived'
+          created_at: string
+        }
+        Insert: {
+          title: string
+          content: string
+          status?: 'draft' | 'published' | 'archived'
+        }
+      }
+    }
+  }
+}
+```
+
+### 4.4 Realtime機能
+```python
+# リアルタイム更新の監視
+def setup_realtime():
+    supabase.table("news")\
+        .on("INSERT", handle_news_insert)\
+        .on("UPDATE", handle_news_update)\
+        .subscribe()
+
+def handle_news_insert(payload):
+    print("New news created:", payload["new"])
+```
+
+---
+
 **更新日**: 2025年7月22日  
-**ステータス**: v1.1・SQLAlchemy ORM対応  
+**ステータス**: v1.2・Supabase SDK最大限活用対応  
+**データアクセス**: Supabase Python SDK + RLS + Realtime + 型生成  
 **総テーブル数**: 7テーブル（管理系1、コンテンツ系4、業務系1、ファイル系1）
