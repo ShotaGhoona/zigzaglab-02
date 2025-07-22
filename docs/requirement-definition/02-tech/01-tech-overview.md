@@ -48,7 +48,7 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 | 技術 | 用途 | 理由 |
 |------|------|------|
 | **FastAPI** | APIフレームワーク | 高速、自動ドキュメント生成 |
-| **Python 3.11** | プログラミング言語 | FastAPI対応 |
+| **Python 3.13.3** | プログラミング言語 | FastAPI対応 |
 | **Pydantic** | データバリデーション | 型安全性 |
 | **Supabase SDK** | データアクセス | RLS自動適用、リアルタイム機能、型生成 |
 

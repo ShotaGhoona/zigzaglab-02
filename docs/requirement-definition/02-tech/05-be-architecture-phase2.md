@@ -11,7 +11,7 @@
 ## 1. アーキテクチャ決定事項
 
 ### 1.1 技術スタック
-- **FastAPI** (Python 3.11) + Pydantic
+- **FastAPI** (Python 3.13.3) + Pydantic
 - **Supabase SDK** (SQLAlchemy不使用)
 - **Clerk JWT認証** (最小限の検証のみ)
 - **Railway** (デプロイ)
@@ -178,7 +178,7 @@ app.add_middleware(
 ## 9. デプロイ設定
 
 ### 9.1 Railway設定
-- **Python 3.11**: `runtime.txt`
+- **Python 3.13.3**: `runtime.txt`
 - **依存関係**: `requirements.txt`
 - **起動コマンド**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 - **環境変数**: Railway Dashboard で設定
