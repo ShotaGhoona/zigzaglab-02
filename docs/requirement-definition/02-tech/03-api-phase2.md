@@ -18,7 +18,7 @@
 - **認証**: Clerk認証（管理画面で簡単制御）
 - **データアクセス**: Supabase SDK
 - **データベース**: PostgreSQL + Row Level Security (RLS)
-- **追加機能**: Realtime、型生成、Auto API
+- **追加機能**: 型生成、Auto API
 - **ファイルストレージ**: Supabase Storage
 - **ドキュメント**: OpenAPI 3.0 (自動生成)
 
@@ -27,7 +27,6 @@
 - 管理者認証必須（Clerk JWT）
 - Supabase SDKによる簡潔なデータアクセス
 - RLS（Row Level Security）による自動セキュリティ適用
-- Realtime機能によるリアルタイム更新
 - フロントエンドからの直接API呼び出し対応
 - CORS設定によるクロスオリジン対応
 - 適切なHTTPステータスコード使用
@@ -570,5 +569,5 @@ alt_text: string (optional)
 
 **更新日**: 2025年7月22日  
 **ステータス**: v1.4・Supabase SDK最大限活用 + 直接API呼び出し + 直接ファイルアクセス対応  
-**データアクセス**: Supabase SDK + RLS + Realtime  
+**データアクセス**: Supabase SDK + RLS  
 **総エンドポイント数**: 29エンドポイント（パブリック8、管理者21）

@@ -22,7 +22,7 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
                           + RLS自動適用           (管理者3名のみ)
         |                       |
         ▼                       ▼
-   Supabase Storage      Realtime機能・型生成
+   Supabase Storage         型生成
    (直接アクセス)         自動API生成
 ```
 
@@ -57,7 +57,6 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 **Supabase**:
 - PostgreSQL (メインDB) + Row Level Security (RLS)
 - Storage (画像保存) + 直接アクセス
-- Realtime (リアルタイム更新)
 - Auto API (CRUD API自動生成)
 - 型生成 (TypeScript型自動生成)
 
