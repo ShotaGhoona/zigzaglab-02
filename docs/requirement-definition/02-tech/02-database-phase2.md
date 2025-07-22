@@ -267,7 +267,111 @@ erDiagram
 
 ---
 
+## 4. RLS（Row Level Security）設計
+
+### 4.1 権限レベル定義
+
+| 権限レベル | 対象ユーザー | 認証方法 | 説明 |
+|------------|--------------|----------|------|
+| **🌐 公開** | 未認証ユーザー | なし | 一般サイト閲覧者 |
+| **👑 管理者** | 橋本・山下・尾崎 | Clerk招待制 | 全データ操作権限 |
+
+### 4.2 テーブル別RLSポリシー
+
+#### 🌐 公開データ（匿名読み取り + 管理者編集）
+
+**対象テーブル**: `news`, `products`, `tags`
+
+```sql
+-- 公開記事の閲覧（匿名OK）
+CREATE POLICY "public_read_published" ON news
+FOR SELECT USING (status = 'published');
+
+-- 管理者のみ全操作可能
+CREATE POLICY "admin_full_access" ON news
+FOR ALL TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM admin_users 
+  WHERE clerk_user_id = auth.jwt() ->> 'sub' AND is_active = true
+));
+
+-- 商品は全商品公開
+CREATE POLICY "public_read_products" ON products
+FOR SELECT USING (status = 'active');
+
+-- タグは全て公開
+CREATE POLICY "public_read_tags" ON tags
+FOR SELECT USING (true);
+```
+
+#### 👑 管理限定データ（管理者のみ）
+
+**対象テーブル**: `admin_users`
+
+```sql
+CREATE POLICY "admin_only_access" ON admin_users
+FOR ALL TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM admin_users 
+  WHERE clerk_user_id = auth.jwt() ->> 'sub' AND is_active = true
+));
+```
+
+#### 📤 投稿許可データ（匿名投稿 + 管理者管理）
+
+**対象テーブル**: `inquiries`
+
+```sql
+-- 匿名での問い合わせ投稿
+CREATE POLICY "anonymous_insert_inquiry" ON inquiries
+FOR INSERT WITH CHECK (true);
+
+-- 管理者のみ閲覧・更新
+CREATE POLICY "admin_manage_inquiries" ON inquiries
+FOR SELECT, UPDATE, DELETE TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM admin_users 
+  WHERE clerk_user_id = auth.jwt() ->> 'sub' AND is_active = true
+));
+```
+
+#### 🏷️ ファイル・関連データ（用途別制御）
+
+**対象テーブル**: `files`, `taggables`
+
+```sql
+-- 公開用ファイルは匿名アクセス可能
+CREATE POLICY "public_read_files" ON files
+FOR SELECT USING (
+  entity_type = 'product' OR 
+  (entity_type = 'news' AND EXISTS (
+    SELECT 1 FROM news WHERE id = files.entity_id AND status = 'published'
+  ))
+);
+
+-- タグ関連は公開
+CREATE POLICY "public_read_taggables" ON taggables
+FOR SELECT USING (true);
+
+-- 管理者はファイル・タグ関連の全操作可能
+CREATE POLICY "admin_manage_files" ON files
+FOR ALL TO authenticated
+USING (EXISTS (
+  SELECT 1 FROM admin_users 
+  WHERE clerk_user_id = auth.jwt() ->> 'sub' AND is_active = true
+));
+```
+
+### 4.3 RLS設計原則
+
+✅ **セキュリティファースト**: 管理データは確実に保護  
+✅ **パフォーマンス重視**: 公開サイトは匿名アクセスで高速  
+✅ **運用性確保**: Clerk認証と連動して自動制御  
+✅ **拡張性考慮**: 後からロール追加も容易
+
+---
+
 **更新日**: 2025年7月22日  
-**ステータス**: v1.2・Supabase SDK最大限活用対応  
+**ステータス**: v1.3・RLS設計追加  
 **データアクセス**: Supabase SDK + RLS + 型生成  
 **総テーブル数**: 7テーブル（管理系1、コンテンツ系4、業務系1、ファイル系1）
