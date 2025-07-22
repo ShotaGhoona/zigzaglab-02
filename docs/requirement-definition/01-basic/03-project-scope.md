@@ -2,7 +2,7 @@
 
 ## リビジョン履歴
 
-| version | date | Auther | Summary | Status | Reviewer |
+| Version | Date | Auther | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
 | v1.0 | 2025-07-20 | 山下 | 初版作成 | 🔄 レビュー中 | 橋本さん|
 | - | - | - | - | - | - |
