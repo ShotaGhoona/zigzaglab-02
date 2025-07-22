@@ -5,6 +5,7 @@
 | Version | Date | Author | Summary | Status | Reviewer |
 |------------|------|--------|----------|----------|--------|
 | v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
+| v1.1 | 2025-07-22 | 山下 | SQLAlchemy ORM対応に修正 | 🔄 レビュー中 | 橋本 |
 
 
 ## 1. API概要
@@ -12,13 +13,17 @@
 ### 1.1 使用技術
 - **フレームワーク**: FastAPI (Python)
 - **認証**: Clerk JWT認証
-- **データベース**: Supabase (PostgreSQL)
+- **ORM**: SQLAlchemy 2.0（非同期対応）
+- **データベース**: PostgreSQL（Supabase経由）
+- **データアクセス**: SQLAlchemy + asyncpg driver
 - **ファイルストレージ**: Supabase Storage
 - **ドキュメント**: OpenAPI 3.0 (自動生成)
 
 ### 1.2 設計方針
 - RESTful API設計
 - 管理者認証必須（Clerk JWT）
+- SQLAlchemy ORMによる型安全なデータアクセス
+- 非同期処理による高パフォーマンス
 - フロントエンド向けのパブリックAPI
 - 適切なHTTPステータスコード使用
 - レスポンス形式の統一
@@ -555,6 +560,8 @@ alt_text: string (optional)
 
 ---
 
+---
+
 **更新日**: 2025年7月22日  
-**ステータス**: v1.0・レビュー待ち  
+**ステータス**: v1.1・SQLAlchemy ORM対応  
 **総エンドポイント数**: 30エンドポイント（パブリック8、管理者22）

@@ -42,7 +42,7 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 | **FastAPI** | APIフレームワーク | 高速、自動ドキュメント生成 |
 | **Python 3.11** | プログラミング言語 | FastAPI対応 |
 | **Pydantic** | データバリデーション | 型安全性 |
-| **SQLAlchemy** | ORM | PostgreSQL対応 |
+| **SQLAlchemy** | ORM | データアクセス層、型安全性 |
 
 ## 4. データベース・認証
 
