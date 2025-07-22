@@ -7,6 +7,8 @@
 | v1.0 | 2025-07-20 | techPM | 初版作成 | 🔄 レビュー中 | 橋本さん |
 | v1.1 | 2025-07-22 | techPM | Clerk統一認証への変更 | 🔄 レビュー中 | 橋本さん |
 | v1.2 | 2025-07-22 | techPM | SQLAlchemy + 直接API呼び出し対応 | 🔄 レビュー中 | 橋本さん |
+| v1.3 | 2025-07-22 | techPM | JWT検証 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本さん |
+| v1.4 | 2025-07-22 | techPM | 認証をClerk管理画面のみに簡素化 | 🔄 レビュー中 | 橋本さん |
 
 ## 1. システム構成
 
@@ -15,8 +17,12 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
     Vercel                   Railway                PostgreSQL
         |                       |                      |
         ▼                       ▼                      ▼
-   直接API呼び出し            SQLAlchemy ORM        Authentication
-                                                      (Clerk)
+   直接API呼び出し         SQLAlchemy ORM        認証：Clerk管理画面
+                                                    (管理者3名のみ)
+        |
+        ▼
+   Supabase Storage
+   (直接アクセス)
 ```
 
 **技術選定方針**: 自作システム構築・勉強目的・TypeScript型安全性・直接API呼び出し・SQLAlchemy ORM
@@ -68,8 +74,9 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 
 ## 6. セキュリティ
 
-- **認証**: Clerk (JWT + 招待制)
-- **認可**: FastAPI + Clerk JWT検証
+- **認証**: Clerk管理画面（招待制・管理者3名のみ）
+- **認可**: 不要（公開サイトのみ、管理画面はClerkで制御）
+- **ファイルアクセス**: Supabase Storage直接アクセス
 - **HTTPS**: 自動SSL証明書
 - **入力検証**: Zod + Pydantic
 - **DB**: Row Level Security (RLS)

@@ -7,13 +7,14 @@
 | v1.0 | 2025-07-22 | 山下 | Phase2版初版作成 | 🔄 レビュー中 | 橋本 |
 | v1.1 | 2025-07-22 | 山下 | SQLAlchemy ORM対応に修正 | 🔄 レビュー中 | 橋本 |
 | v1.2 | 2025-07-22 | 山下 | 直接API呼び出し対応に修正 | 🔄 レビュー中 | 橋本 |
+| v1.3 | 2025-07-22 | 山下 | JWT検証 + 直接ファイルアクセス対応 | 🔄 レビュー中 | 橋本 |
 
 
 ## 1. API概要
 
 ### 1.1 使用技術
 - **フレームワーク**: FastAPI (Python)
-- **認証**: Clerk JWT認証
+- **認証**: Clerk JWT認証（FastAPIで検証）
 - **ORM**: SQLAlchemy 2.0（非同期対応）
 - **データベース**: PostgreSQL（Supabase経由）
 - **データアクセス**: SQLAlchemy + asyncpg driver
@@ -306,8 +307,9 @@ Authorization: Bearer <clerk_jwt_token>
 ## 4.4 ファイル API
 
 ### GET /files/{file_path}
-**説明**: ファイル取得（プロキシ）  
-**権限**: public（パブリックファイルのみ）
+**説明**: ファイルアップロード管理のみ（表示はSupabase Storage直接アクセス）  
+**権限**: admin（アップロード用）  
+**備考**: フロントエンドでのファイル表示は直接Supabase StorageのURL使用
 
 
 ## 5. 管理者 API
@@ -481,7 +483,7 @@ alt_text: string (optional)
     "sort_order": 1,
     "caption": "商品画像",
     "alt_text": "高品質缶バッジ",
-    "url": "https://supabase.storage.url/products/uuid/product_image.jpg"
+    "public_url": "https://your-project.supabase.co/storage/v1/object/public/files/products/uuid/product_image.jpg"
   }
 }
 ```
@@ -550,7 +552,7 @@ alt_text: string (optional)
 ## 8. セキュリティ
 
 ### 8.1 認証・認可
-- Clerk JWT検証
+- Clerk JWT検証（FastAPI実装）
 - 管理者権限チェック
 - レート制限実装
 
@@ -565,5 +567,5 @@ alt_text: string (optional)
 ---
 
 **更新日**: 2025年7月22日  
-**ステータス**: v1.2・SQLAlchemy ORM + 直接API呼び出し対応  
+**ステータス**: v1.3・SQLAlchemy ORM + 直接API呼び出し + JWT検証 + 直接ファイルアクセス対応  
 **総エンドポイント数**: 30エンドポイント（パブリック8、管理者22）
