@@ -1,0 +1,19 @@
+# バックエンド用 Docker除外設定
+
+# Python キャッシュ
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.py.class
+
+# 仮想環境
+venv
+env
+
+# 環境設定
+.env
+
+# 開発用ファイル
+*.log
+.pytest_cache

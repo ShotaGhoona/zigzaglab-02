@@ -1,0 +1,47 @@
+# Docker用除外設定
+
+# Git関連
+.git
+.gitignore
+README.md
+
+# ログファイル
+*.log
+logs
+
+# 依存関係（コンテナ内で再インストール）
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# ビルド成果物
+.next
+dist
+build
+
+# 環境設定（コンテナで個別管理）
+.env
+.env.local
+.env.production
+
+# IDE設定
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS設定
+.DS_Store
+Thumbs.db
+
+# 開発用ファイル
+*.tmp
+*.temp
+
+# Docker関連
+Dockerfile*
+docker-compose*
+.dockerignore

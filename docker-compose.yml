@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # フロントエンド（Next.js 15）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - ./frontend/.env.local
+    depends_on:
+      - backend
+    networks:
+      - zigzaglab-network
+
+  # バックエンド（FastAPI + Python 3.13.3）
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - ./backend/.env
+    working_dir: /app/src
+    networks:
+      - zigzaglab-network
+
+networks:
+  zigzaglab-network:
+    driver: bridge
+
+# 開発用設定
+# 本番環境では別途 docker-compose.prod.yml を使用

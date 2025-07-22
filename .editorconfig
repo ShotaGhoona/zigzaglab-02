@@ -1,0 +1,29 @@
+# EditorConfig設定
+# エディタ非依存の統一設定
+
+root = true
+
+# 全ファイル共通設定
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Markdown（末尾スペース保持）
+[*.md]
+trim_trailing_whitespace = false
+
+# Python（インデント4スペース）
+[*.py]
+indent_size = 4
+
+# YAML（インデント2スペース）
+[*.{yml,yaml}]
+indent_size = 2
+
+# Makefile（タブインデント）
+[Makefile]
+indent_style = tab
