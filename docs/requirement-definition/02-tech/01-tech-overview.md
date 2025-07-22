@@ -32,7 +32,7 @@ Frontend (Next.js) ◄──► Backend (FastAPI) ◄──► Database (Supabas
 
 | 技術 | 用途 | 理由 |
 |------|------|------|
-| **Next.js 14** | Reactフレームワーク | SSG/SSR、SEO対応 |
+| **Next.js 15** | Reactフレームワーク | SSG/SSR、SEO対応 |
 | **TypeScript** | 型システム | 型安全性、開発効率 |
 | **Tailwind CSS** | CSSフレームワーク | 高速開発、レスポンシブ |
 | **shadcn/ui** | UIコンポーネント | 高品質、カスタマイズ性 |

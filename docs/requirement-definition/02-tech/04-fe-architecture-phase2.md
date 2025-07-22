@@ -11,7 +11,7 @@
 ## 1. アーキテクチャ決定事項
 
 ### 1.1 技術スタック
-- **Next.js 14 (App Router)** + TypeScript
+- **Next.js 15 (App Router)** + TypeScript
 - **shadcn/ui** (Tailwind CSS基盤)
 - **Clerk認証** (管理画面のみ)
 - **React Hook Form + Zod** (フォームバリデーション)

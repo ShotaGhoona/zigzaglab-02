@@ -44,7 +44,7 @@ graph TB
 ### 2.2 技術スタック
 
 #### フロントエンド
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Hosting**: Vercel Pro（既存）
 - **Strategy**: SSG + ISR（公開サイト）、CSR（管理画面）
 - **Styling**: Tailwind CSS
